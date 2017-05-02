@@ -58,10 +58,26 @@ void __ISR(_I2C_1_VECTOR, ipl3SOFT) _SlaveI2CHandler(void) {
             switch(I2C_request){
                 case 0x80:
                     if(I2CDataIn > 0x80){
-                        mPORTASetBits(BIT_0);
+                        //mPORTASetBits(BIT_0);
+                        SetDCOC1PWM(8192); 
+                        SetDCOC2PWM(8192); 
+                         
+                     
                     }
-                    else{
-                        mPORTAClearBits(BIT_0);
+                    else if (I2CDataIn == 0x80){
+                        //mPORTAClearBits(BIT_0);
+                        SetDCOC1PWM(0); 
+                        SetDCOC2PWM(0); 
+                    }
+                    else {
+                        //mPORTAClearBits(BIT_0);
+                    }
+                   
+                case 0x81:
+                    if(I2CDataIn == 0x79){
+                    mPORTASetBits(BIT_0);
+                    SetDCOC1PWM(0); 
+                    SetDCOC2PWM(0); 
                     }
                 break;
             } 
@@ -121,8 +137,14 @@ void InitI2C(void) {
 
 
 void main(void) {
-
-
+      OpenTimer2(T2_ON|T2_SOURCE_INT|T2_PS_1_1,16384);
+      ConfigIntTimer2(T2_INT_OFF| T2_INT_PRIOR_6);
+      mT2ClearIntFlag();
+      mPORTBSetPinsDigitalOut(BIT_7|BIT_5);
+      RPB7R = 0x05;//output compare pin 16
+      RPB5R = 0x05;
+      OpenOC1(OC_ON | OC_TIMER2_SRC | OC_PWM_FAULT_PIN_DISABLE, 0 , 0);
+      OpenOC2(OC_ON | OC_TIMER2_SRC | OC_PWM_FAULT_PIN_DISABLE, 0 , 0);
     SYSTEMConfigPerformance(sys_clock);
     // === I2C Init ================
     InitI2C();
