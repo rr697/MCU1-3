@@ -57,14 +57,14 @@ void __ISR(_I2C_1_VECTOR, ipl3SOFT) _SlaveI2CHandler(void) {
         else if(I2Cstate == 1){
             switch(I2C_request){
                 case 0x80:
-                    if(I2CDataIn > 0x80){
-                        //mPORTASetBits(BIT_0);
+                    if(I2CDataIn == 0x00){
+                        //mPORTASetBits(BIT_079);
                         SetDCOC1PWM(8192); 
                         SetDCOC2PWM(8192); 
                          
                      
                     }
-                    else if (I2CDataIn == 0x80){
+                    else if (I2CDataIn == 0x01){
                         //mPORTAClearBits(BIT_0);
                         SetDCOC1PWM(0); 
                         SetDCOC2PWM(0); 
@@ -74,7 +74,7 @@ void __ISR(_I2C_1_VECTOR, ipl3SOFT) _SlaveI2CHandler(void) {
                     }
                    
                 case 0x81:
-                    if(I2CDataIn == 0x79){
+                    if(I2CDataIn == 0x10){
                     mPORTASetBits(BIT_0);
                     SetDCOC1PWM(0); 
                     SetDCOC2PWM(0); 
