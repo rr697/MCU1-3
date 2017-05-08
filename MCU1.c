@@ -21,7 +21,8 @@ static int stop;
 static int move_back;
 static int move_left;
 static int move_right; 
-
+static int speed_A; 
+static int speed_B; 
 ///////////////////////////////////////////////////////////////////
 //
 // Slave I2C interrupt handler
@@ -147,7 +148,17 @@ void InitI2C(void) {
   ConfigIntCapture1(IC_INT_ON | IC_INT_PRIOR_3 | IC_INT_SUB_PRIOR_3 );
   INTClearFlag(INT_IC1);
   // connect PIN 24 to IC1 capture unit
-  PPSInput(3, IC1, RPB13);
+  PPSInput(1, IC4, RPB2);
+}
+void __ISR(_I2C_1_VECTOR, ipl3SOFT) inputCapture(void)
+{
+    if(mPORTARead(BIT_0)){
+        
+    }
+    else
+    {
+        
+    }
 }*/
 // === Main  ======================================================
 
@@ -162,11 +173,7 @@ void main(void) {
       mPORTBSetPinsDigitalOut(BIT_11|BIT_13);
       mPORTAClearBits(BIT_2);
       mPORTBClearBits(BIT_13);
-      //while(1);
-     
-      //mPORTASetPinsDigitalOut(BIT_4); 
-      //RPB7R = 0x05;//output compare pin 16
-      //RPB5R = 0x05;
+   
       RPB11R =0x05;
       RPA0R = 0x05; 
       OpenOC1(OC_ON | OC_TIMER2_SRC | OC_PWM_FAULT_PIN_DISABLE, 0 , 0);
@@ -174,7 +181,7 @@ void main(void) {
     SYSTEMConfigPerformance(sys_clock);
     // === I2C Init ================
     InitI2C();
-    //init_InputCapture()
+ 
 
     mJTAGPortEnable(0);
 
