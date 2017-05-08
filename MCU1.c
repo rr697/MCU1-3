@@ -10,11 +10,18 @@
 #include "config.h"
 #include <plib.h>
 #include "I2C_Reg_defs.h"
+
 ////////////////////////////////////
 
-static unsigned char I2CDataIn;
+static signed char I2CDataIn;
 static int I2Cstate = 0;
 static unsigned char I2C_request;
+static int move_forward;
+static int stop;
+static int move_back;
+static int move_left;
+static int move_right; 
+
 ///////////////////////////////////////////////////////////////////
 //
 // Slave I2C interrupt handler
@@ -26,6 +33,8 @@ static unsigned char I2C_request;
 static unsigned char WDTCount = 0;
 void __ISR(_I2C_1_VECTOR, ipl3SOFT) _SlaveI2CHandler(void) {
     unsigned char temp;
+    //move_forward = 2250; 
+    //stop = 0;
 
     // check for MASTER and Bus events and respond accordingly
     if (IFS1bits.I2C1MIF) {
@@ -56,31 +65,30 @@ void __ISR(_I2C_1_VECTOR, ipl3SOFT) _SlaveI2CHandler(void) {
         }
         else if(I2Cstate == 1){
             switch(I2C_request){
-                case 0x80:
-                    if(I2CDataIn == 0x00){
-                        //mPORTASetBits(BIT_079);
-                        SetDCOC1PWM(8192); 
-                        SetDCOC2PWM(8192); 
-                         
+                case 1:
+                    if(I2CDataIn> 0){
+                        mPORTASetBits(BIT_2);
+                        SetDCOC1PWM(16384-abs(I2CDataIn)*128); 
+                    }
+                    else 
+                    {
+                       mPORTAClearBits(BIT_2);  
+                       SetDCOC1PWM(abs(I2CDataIn)*128); 
                      
                     }
-                    else if (I2CDataIn == 0x01){
-                        //mPORTAClearBits(BIT_0);
-                        SetDCOC1PWM(0); 
-                        SetDCOC2PWM(0); 
-                    }
-                    else {
-                        //mPORTAClearBits(BIT_0);
-                    }
                    
-                case 0x81:
-                    if(I2CDataIn == 0x10){
-                    mPORTASetBits(BIT_0);
-                    SetDCOC1PWM(0); 
-                    SetDCOC2PWM(0); 
+                case 2:
+                    if(I2CDataIn > 0){
+                    mPORTBSetBits(BIT_13);
+                    SetDCOC2PWM(16384-abs(I2CDataIn)*128);  
+                    }
+                    else
+                    {
+                        mPORTBSetBits(BIT_13);
+                        SetDCOC2PWM(abs(I2CDataIn)*128);
                     }
                 break;
-            } 
+        }
             I2Cstate = 0;
         }
         
@@ -111,6 +119,7 @@ void __ISR(_I2C_1_VECTOR, ipl3SOFT) _SlaveI2CHandler(void) {
     }
 
     mI2C1SClearIntFlag();
+    //mPORTASetBits(BIT_4);
 }
 
 void InitI2C(void) {
@@ -132,22 +141,40 @@ void InitI2C(void) {
     EnableIntSI2C1;
 }
 
-
+/*void init_inputCapture(void){
+   OpenCapture1(  IC_EVERY_RISE_EDGE | IC_INT_1CAPTURE | IC_TIMER3_SRC | IC_ON );
+  // turn on the interrupt so that every capture can be recorded
+  ConfigIntCapture1(IC_INT_ON | IC_INT_PRIOR_3 | IC_INT_SUB_PRIOR_3 );
+  INTClearFlag(INT_IC1);
+  // connect PIN 24 to IC1 capture unit
+  PPSInput(3, IC1, RPB13);
+}*/
 // === Main  ======================================================
 
 
 void main(void) {
+   
       OpenTimer2(T2_ON|T2_SOURCE_INT|T2_PS_1_1,16384);
       ConfigIntTimer2(T2_INT_OFF| T2_INT_PRIOR_6);
       mT2ClearIntFlag();
-      mPORTBSetPinsDigitalOut(BIT_7|BIT_5);
-      RPB7R = 0x05;//output compare pin 16
-      RPB5R = 0x05;
+      //mPORTBSetPinsDigitalOut(BIT_7|BIT_5);
+      mPORTASetPinsDigitalOut(BIT_0|BIT_2);
+      mPORTBSetPinsDigitalOut(BIT_11|BIT_13);
+      mPORTAClearBits(BIT_2);
+      mPORTBClearBits(BIT_13);
+      //while(1);
+     
+      //mPORTASetPinsDigitalOut(BIT_4); 
+      //RPB7R = 0x05;//output compare pin 16
+      //RPB5R = 0x05;
+      RPB11R =0x05;
+      RPA0R = 0x05; 
       OpenOC1(OC_ON | OC_TIMER2_SRC | OC_PWM_FAULT_PIN_DISABLE, 0 , 0);
       OpenOC2(OC_ON | OC_TIMER2_SRC | OC_PWM_FAULT_PIN_DISABLE, 0 , 0);
     SYSTEMConfigPerformance(sys_clock);
     // === I2C Init ================
     InitI2C();
+    //init_InputCapture()
 
     mJTAGPortEnable(0);
 
@@ -155,6 +182,10 @@ void main(void) {
     
     mPORTASetPinsDigitalOut(BIT_0);
     mPORTAClearBits(BIT_0);
+    
+    
+    //mPORTASetPinsDigitalOut(BIT_1);
+    //mPORTASetBits(BIT_1);
     //round robin thread schedule
     while (1) {
         I2C1CONbits.SCLREL = 1; // release the clock
