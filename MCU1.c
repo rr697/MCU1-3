@@ -85,7 +85,7 @@ void __ISR(_I2C_1_VECTOR, ipl3SOFT) _SlaveI2CHandler(void) {
                     }
                     else
                     {
-                        mPORTBSetBits(BIT_13);
+                        mPORTBClearBits(BIT_13);
                         SetDCOC2PWM(abs(I2CDataIn)*128);
                     }
                 break;
@@ -142,30 +142,35 @@ void InitI2C(void) {
     EnableIntSI2C1;
 }
 
-/*void init_inputCapture(void){
-   OpenCapture1(  IC_EVERY_RISE_EDGE | IC_INT_1CAPTURE | IC_TIMER3_SRC | IC_ON );
+void init_inputCapture(void){
+  OpenCapture1(  IC_EVERY_RISE_EDGE | IC_INT_1CAPTURE | IC_TIMER3_SRC | IC_ON );
   // turn on the interrupt so that every capture can be recorded
   ConfigIntCapture1(IC_INT_ON | IC_INT_PRIOR_3 | IC_INT_SUB_PRIOR_3 );
   INTClearFlag(INT_IC1);
   // connect PIN 24 to IC1 capture unit
-  PPSInput(1, IC4, RPB2);
+  PPSInput(1, IC4, RPB4);
 }
-void __ISR(_I2C_1_VECTOR, ipl3SOFT) inputCapture(void)
+void __ISR(_INPUT_CAPTURE_4_VECTOR, ipl3SOFT) inputCapture(void)
 {
-    if(mPORTARead(BIT_0)){
+    if(mPORTAReadBits(BIT_0)){
+        mIC4ReadCapture();
+        speed_A = -127/max(mIC4ReadCapture(),1);
         
     }
     else
     {
         
+        speed_A = 127/max(mIC4ReadCapture(),1);
     }
-}*/
+}
 // === Main  ======================================================
 
 
 void main(void) {
    
       OpenTimer2(T2_ON|T2_SOURCE_INT|T2_PS_1_1,16384);
+      OpenTimer3(T3_ON|T3_SOURCE_INT|T3_PS_1_64,0xffff);
+   
       ConfigIntTimer2(T2_INT_OFF| T2_INT_PRIOR_6);
       mT2ClearIntFlag();
       //mPORTBSetPinsDigitalOut(BIT_7|BIT_5);
@@ -181,6 +186,7 @@ void main(void) {
     SYSTEMConfigPerformance(sys_clock);
     // === I2C Init ================
     InitI2C();
+    init_inputCapture();
  
 
     mJTAGPortEnable(0);
