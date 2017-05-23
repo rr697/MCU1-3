@@ -1,8 +1,4 @@
-/*
- * File:        MCU1
- * Author:      Matthew Filipek
- * Target PIC:  PIC32MX250F128B
- */
+
 
 
 
